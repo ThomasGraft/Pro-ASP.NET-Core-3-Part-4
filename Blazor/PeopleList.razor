@@ -1,50 +1,26 @@
-﻿<table class="table table-sm table-bordered table-striped">
-    <thead>
+﻿<TableTemplate RowType="Person" RowData="People" Highlight="@(p => p.Location.City)" SortDirection="@(P => P.SurName)">
+    <Header>
         <tr>
             <th>ID</th>
             <th>Name</th>
             <th>Dept</th>
             <th>Location</th>
         </tr>
-    </thead>
-    <tbody>
-        @foreach (Person p in People)
-        {
-            <tr class="@GetClass(p.Location.City)">
-                <td>@p.PersonId</td>
-                <td>@p.SurName, @p.FirstName</td>
-                <td>@p.Department.Name</td>
-                <td>@p.Location.City, @p.Location.State</td>
-            </tr>
-        }
-    </tbody>
-</table>
-
-<SelectFilter values="@Cities" title="@SelectTitle" CustomEvent="@HandleCustom" />
+    </Header>
+    <RowTemplate Context="p">
+        <td>@p.PersonId</td>
+        <td>@p.SurName, @p.FirstName</td>
+        <td>@p.Department.Name</td>
+        <td>@p.Location.City, @p.Location.State</td>
+    </RowTemplate>
+</TableTemplate>
 
 @code {
     [Inject]
     public DataContext Context { get; set; }
 
-    public string SelectedCity { get; set; }
-
-    [Parameter]
-    public int ItemCount { get; set; } = 4;
-
-    [Parameter]
-    public string SelectTitle { get; set; }
-
     public IEnumerable<Person> People =>
-        Context.People.Include(p => p.Department).Include(p => p.Location).Take(ItemCount);
-
-    public IEnumerable<string> Cities =>
-        Context.Locations.Select(l => l.City);
-
-    public string GetClass(string city) =>
-        SelectedCity == city ? "bg-info text-white" : "";
-
-    public void HandleCustom(string newValue)
-    {
-        SelectedCity = newValue;
-    }
+        Context.People
+        .Include(p => p.Department)
+        .Include(p => p.Location);
 }

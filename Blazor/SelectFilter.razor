@@ -1,5 +1,5 @@
-﻿<div class="form-group">
-    <label for="select-@Title"></label>
+﻿<div class="form-group p-2 bg-@Theme @TextColor()">
+    <label for="select-@Title">@Title</label>
     <select name="select-@Title" class="form-control" @onchange="HandleSelect" value="@SelectedValue">
         <option disabled selected>Select @Title</option>
         @foreach (string val in Values)
@@ -14,6 +14,7 @@
     [Parameter]
     public IEnumerable<string> Values { get; set; } = Enumerable.Empty<string>();
 
+    [Parameter]
     public string SelectedValue { get; set; }
 
     [Parameter]
@@ -23,12 +24,17 @@
     public Dictionary<string, object> Attrs { get; set; }
 
     [Parameter]
-    public EventCallback<string> CustomEvent { get; set; }
+    public EventCallback<string> SelectedValueChanged { get; set; }
 
     public async Task HandleSelect(ChangeEventArgs e)
     {
         SelectedValue = e.Value as string;
 
-        await CustomEvent.InvokeAsync(SelectedValue);
+        await SelectedValueChanged.InvokeAsync(SelectedValue);
     }
+
+    [CascadingParameter(Name = "BgTheme")]
+    public string Theme { get; set; }
+
+    public string TextColor() => Theme == null ? "" : "text-white";
 }
