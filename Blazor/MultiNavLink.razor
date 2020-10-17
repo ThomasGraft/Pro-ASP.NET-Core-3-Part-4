@@ -40,8 +40,12 @@
 
     public void SetEnabled(bool enabled)
     {
-        Enabled = enabled;
-        CheckMatch(NavManager.Uri);
+        InvokeAsync(() =>
+        {
+            Enabled = enabled;
+            CheckMatch(NavManager.Uri);
+            StateHasChanged();
+        });
     }
 
     public void HandleClick()
@@ -78,5 +82,15 @@
         Href = Href.Select(h => h.StartsWith("/") ? h.Substring(1) : h);
 
         CheckMatch(NavManager.Uri);
+    }
+
+    [JSInvokable]
+    public static void ToggleEnabled() => ToggleEvent.Invoke(null, new EventArgs());
+
+    private static event EventHandler ToggleEvent;
+
+    protected override void OnInitialized()
+    {
+        ToggleEvent += (sender, args) => SetEnabled(!Enabled);
     }
 }
