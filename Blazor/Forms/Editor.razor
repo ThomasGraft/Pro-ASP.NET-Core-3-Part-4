@@ -1,0 +1,85 @@
+﻿@page "/forms/edit/{id:long}"
+@inherits OwningComponentBase<DataContext>
+@using Microsoft.Extensions.DependencyInjection 
+@layout EmptyLayout
+@implements IDisposable
+
+
+<link href="/blazorValidation.css" rel="stylesheet" />
+
+<h4 class="bg-primary text-center text-white p-2">Edit</h4>
+<h6 class="bg-info text-center text-white p-2">@FormSubmitMessage</h6>
+
+<FormSpy PersonData="PersonData">
+    <EditForm Model="PersonData"OnValidSubmit="HandleValidSubmit" OnInvalidSubmit="HandleInvalidSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <div class="form-group">
+            <label>Person ID</label>
+            <InputNumber class="form-control" @bind-Value="PersonData.PersonId" disabled />
+        </div>
+        <div class="form-group">
+            <label>Firstname</label>
+            <ValidationMessage For="@(() => PersonData.FirstName)" />
+            <InputText class="form-control" @bind-Value="PersonData.FirstName" />
+        </div>
+        <div class="form-group">
+            <label>Surname</label>
+            <ValidationMessage For="@(() => PersonData.SurName)" />
+            <InputText class="form-control" @bind-Value="PersonData.SurName" />
+        </div>
+        <div class="form-group">
+            <label>Dept ID</label>
+            <ValidationMessage For="@(() => PersonData.DepartmentId)" />
+            <CustomSelect TValue="long" Values="Departments" Parser="@(str => long.Parse(str))"
+                          @bind-Value="PersonData.DepartmentId">
+                <option selected disabled value="0">Choose a Department</option>
+            </CustomSelect>
+        </div>
+        <div class="form-group">
+            <label>Location ID</label>
+            <ValidationMessage For="@(() => PersonData.LocationId)" />
+            <CustomSelect TValue="long" Values="Locations" Parser="@(str => long.Parse(str))"
+                          @bind-Value="PersonData.LocationId">
+                <option selected disabled value="0">Choose a Location</option>
+            </CustomSelect>
+        </div>
+        <div class="text-center">
+            <button type="submit" class="btn btn-primary">Submit</button>
+            <NavLink class="btn btn-secondary" href="/forms">Back</NavLink>
+        </div>
+    </EditForm>
+</FormSpy>
+
+@code {
+
+    [Inject]
+    public NavigationManager NavManager { get; set; }
+
+    //[Inject]
+    public DataContext Context => Service;
+
+    [Parameter]
+    public long Id { get; set; }
+
+    public Person PersonData { get; set; } = new Person();
+
+    public string FormSubmitMessage { get; set; } = "Form Data Not Submitted";
+
+    public void HandleValidSubmit() => FormSubmitMessage = "Valid Data Submitted";
+
+    public void HandleInvalidSubmit() => FormSubmitMessage = "Invalid Data Submitted";
+
+    //public void Dispose() => Context.Entry(PersonData).State = EntityState.Detached;
+
+    public IDictionary<string, long> Departments { get; set; } = new Dictionary<string, long>();
+
+    public IDictionary<string, long> Locations { get; set; } = new Dictionary<string, long>();
+
+    protected async override Task OnParametersSetAsync()
+    {
+        PersonData = await Context.People.FindAsync(Id);
+        Departments = await Context.Departments.ToDictionaryAsync(d => d.Name, d => d.DepartmentId);
+        Locations = await Context.Locations.ToDictionaryAsync(l => $"{l.City}, {l.State}", l => l.LocationId);
+    }
+}

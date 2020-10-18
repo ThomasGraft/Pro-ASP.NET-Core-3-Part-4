@@ -1,0 +1,73 @@
+﻿@page "/forms"
+@page "/forms/list"
+@layout EmptyLayout
+
+<h5 class="bg-primary text-white text-center p-2">People</h5>
+
+<table class="table table-sm table-striped table-bordered">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Dept</th>
+            <th>Location</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (People.Count() == 0)
+        {
+            <tr><th colspan="5" class="p-4 text-center">Loading Data...</th></tr>
+        }
+        else
+        {
+            @foreach (Person p in People)
+            {
+                <tr>
+                    <td>@p.PersonId</td>
+                    <td>@p.SurName, @p.FirstName</td>
+                    <td>@p.Department.Name</td>
+                    <td>@p.Location.City</td>
+                </tr>
+            }
+        }
+    </tbody>
+</table>
+
+<button class="btn btn-danger" @onclick="@(() => UpdateData())">Update</button>
+<button class="btn btn-info" @onclick="SortWithQuery">Sort (With Query)</button>
+<button class="btn btn-info" @onclick="SortWithoutQuery">Sort (No Query)</button>
+
+<button class="btn btn-primary" @onclick="@(() => Counter++)">Increment</button>
+<span class="h5">Counter: @Counter</span>
+
+@code {
+
+    [Inject]
+    public DataContext Context { get; set; }
+
+    public IEnumerable<Person> People { get; set; } = Enumerable.Empty<Person>();
+
+    protected async override Task OnInitializedAsync()
+    {
+        await UpdateData();
+    }
+
+    private IQueryable<Person> Query => Context.People.Include(p => p.Department).Include(p => p.Location);
+
+    private async Task UpdateData(IQueryable<Person> query = null) => People = await (query ?? Query).ToListAsync<Person>();
+
+    public async Task SortWithQuery()
+    {
+        await UpdateData(Query.OrderBy(p => p.SurName));
+    }
+
+    public void SortWithoutQuery()
+    {
+        People = People.OrderBy(p => p.FirstName).ToList<Person>();
+    }
+
+    public int Counter { get; set; } = 0;
+
+
+
+}
