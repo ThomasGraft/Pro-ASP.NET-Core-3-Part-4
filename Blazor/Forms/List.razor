@@ -1,6 +1,7 @@
 ﻿@page "/forms"
 @page "/forms/list"
 @layout EmptyLayout
+@inherits OwningComponentBase<DataContext>
 
 <h5 class="bg-primary text-white text-center p-2">People</h5>
 
@@ -27,23 +28,22 @@
                     <td>@p.SurName, @p.FirstName</td>
                     <td>@p.Department.Name</td>
                     <td>@p.Location.City</td>
+                    <td class="text-center">
+                        <NavLink class="btn btn-sm btn-info" href="@GetDetailsUrl(p.PersonId)">Details</NavLink>
+                        <NavLink class="btn btn-sm btn-warning" href="@GetEditUrl(p.PersonId)">Edit</NavLink>
+                        <button class="btn btn-sm btn-danger" @onclick="@(() => HandleDelete(p))">Delete</button>
+                    </td>
                 </tr>
             }
         }
     </tbody>
 </table>
 
-<button class="btn btn-danger" @onclick="@(() => UpdateData())">Update</button>
-<button class="btn btn-info" @onclick="SortWithQuery">Sort (With Query)</button>
-<button class="btn btn-info" @onclick="SortWithoutQuery">Sort (No Query)</button>
-
-<button class="btn btn-primary" @onclick="@(() => Counter++)">Increment</button>
-<span class="h5">Counter: @Counter</span>
+<NavLink class="btn btn-primary" href="/forms/create">Create</NavLink>
 
 @code {
 
-    [Inject]
-    public DataContext Context { get; set; }
+    public DataContext Context => Service;
 
     public IEnumerable<Person> People { get; set; } = Enumerable.Empty<Person>();
 
@@ -56,18 +56,14 @@
 
     private async Task UpdateData(IQueryable<Person> query = null) => People = await (query ?? Query).ToListAsync<Person>();
 
-    public async Task SortWithQuery()
+    string GetEditUrl(long id) => $"/forms/edit/{id}";
+
+    string GetDetailsUrl(long id) => $"/forms/details/{id}";
+
+    public async Task HandleDelete(Person p)
     {
-        await UpdateData(Query.OrderBy(p => p.SurName));
+        Context.Remove(p);
+        await Context.SaveChangesAsync();
+        await UpdateData();
     }
-
-    public void SortWithoutQuery()
-    {
-        People = People.OrderBy(p => p.FirstName).ToList<Person>();
-    }
-
-    public int Counter { get; set; } = 0;
-
-
-
 }
