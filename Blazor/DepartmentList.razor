@@ -1,5 +1,8 @@
 ﻿@page "/departments"
 @page "/depts"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [Authorize]
 
 <CascadingValue Name="BgTheme" Value="Theme" IsFixed="false">
     <TableTemplate RowType="Department" RowData="Departments" Highlight="@(d => d.Name)" SortDirection="@(d => d.Name)">
@@ -15,7 +18,16 @@
             <td>@d.DepartmentId</td>
             <td>@d.Name</td>
             <td>@(String.Join(", ", d.People.Select(p => p.SurName)))</td>
-            <td>@(String.Join(", ", d.People.Select(p => p.Location.City).Distinct()))</td>
+            <td>
+                <AuthorizeView Roles="Admins">
+                    <Authorized>
+                        @(String.Join(", ", d.People.Select(p => p.Location.City).Distinct()))
+                    </Authorized>
+                    <NotAuthorized>
+                        (Not Authorized)
+                    </NotAuthorized>
+                </AuthorizeView>
+            </td>
         </RowTemplate>
     </TableTemplate>
 </CascadingValue>

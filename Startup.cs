@@ -12,6 +12,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using System.Security.Claims;
+using Mono.Cecil.Cil;
 
 namespace Advanced
 {
@@ -53,6 +59,42 @@ namespace Advanced
                 opts.User.RequireUniqueEmail = true;
                 opts.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyz";
             });
+
+            services.AddAuthentication(OptionsServiceCollectionExtensions =>
+            {
+                OptionsServiceCollectionExtensions.DefaultScheme =
+                    CookieAuthenticationDefaults.AuthenticationScheme;
+
+                OptionsServiceCollectionExtensions.DefaultChallengeScheme =
+                    CookieAuthenticationDefaults.AuthenticationScheme;
+
+            }).AddCookie(OptionsServiceCollectionExtensions =>
+            {
+                OptionsServiceCollectionExtensions.Events.DisableRedirectForPath(e =>
+                    e.OnRedirectToLogin, "/api", StatusCodes.Status403Forbidden);
+            }).AddJwtBearer(opts =>
+            {
+                opts.RequireHttpsMetadata = false;
+                opts.SaveToken = true;
+                opts.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(Configuration["jwtsecret"])),
+                    ValidateAudience = false,
+                    ValidateIssuer = false
+                };
+                opts.Events = new JwtBearerEvents
+                {
+                    OnTokenValidated = async ctx =>
+                    {
+                        var usrmgr = ctx.HttpContext.RequestServices.GetRequiredService<UserManager<IdentityUser>>();
+                        var signinmgr = ctx.HttpContext.RequestServices.GetRequiredService<SignInManager<IdentityUser>>();
+                        string username = ctx.Principal.FindFirst(ClaimTypes.Name)?.Value;
+                        IdentityUser idUser = await usrmgr.FindByNameAsync(username);
+                        ctx.Principal = await signinmgr.CreateUserPrincipalAsync(idUser);
+                    }
+                };
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -63,6 +105,9 @@ namespace Advanced
             app.UseDeveloperExceptionPage();
             app.UseStaticFiles();
             app.UseRouting();
+
+            app.UseAuthentication();
+            app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
             {
@@ -77,6 +122,7 @@ namespace Advanced
             app.Map("/webassembly", opts => opts.UseClientSideBlazorFiles<BlazorWebAssembly.Startup>());
 
             SeedData.SeedDatabase(context);
+            IdentitySeedData.CreateAdminAccount(app.ApplicationServices, Configuration);
         }
     }
 }
